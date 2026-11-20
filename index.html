@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Тапалка листочков</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{--forest:#0e5a2b;--leaf:#1fa84a;--lime:#b6f23c;--sun:#ffd23f;--ink:#12351f;--card:rgba(255,255,255,.88)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);
+background:radial-gradient(circle at 15% 8%,rgba(182,242,60,.55),transparent 40%),linear-gradient(170deg,#5fd36b 0%,#1fa84a 55%,#0e5a2b 100%);
+background-attachment:fixed;overflow-x:hidden;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.app{max-width:480px;margin:0 auto;padding:calc(env(safe-area-inset-top,0px) + 14px) 14px calc(env(safe-area-inset-bottom,0px) + 16px);display:flex;flex-direction:column;gap:12px;min-height:100%}
+.balance{text-align:center;color:#fff;text-shadow:0 2px 0 rgba(14,90,43,.45)}
+.balance small{display:block;font-weight:800;font-size:15px;opacity:.9}
+#balance{display:block;font-weight:900;font-size:56px;line-height:1.05}
+#power{display:inline-block;margin-top:4px;padding:3px 12px;border-radius:99px;background:rgba(14,90,43,.35);font-weight:800;font-size:14px}
+.tap-zone{flex:1;display:grid;place-items:center;min-height:230px}
+.leaf-btn{width:min(62vw,250px);aspect-ratio:1;border:0;background:none;padding:0;cursor:pointer;filter:drop-shadow(0 14px 18px rgba(14,90,43,.5));transition:transform .08s;animation:sway 4s ease-in-out infinite}
+.leaf-btn.pressed{transform:scale(.92) rotate(-3deg);animation:none}
+.leaf-btn svg{width:100%;height:100%;display:block;pointer-events:none}
+@keyframes sway{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+.float{position:fixed;z-index:20;pointer-events:none;font-weight:900;font-size:30px;color:#fff;text-shadow:0 2px 0 var(--forest),0 0 10px rgba(14,90,43,.6);animation:rise .8s ease-out forwards}
+.float.b{color:var(--sun)}
+@keyframes rise{from{opacity:1;transform:translate(-50%,0)}to{opacity:0;transform:translate(-50%,-90px)}}
+.card{background:var(--card);border-radius:22px;padding:14px;box-shadow:0 6px 0 rgba(14,90,43,.25)}
+.top{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.hippo-img{width:96px;flex:none;animation:bob 3s ease-in-out infinite}
+.hungry .hippo-img{filter:saturate(.5);animation:none}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+.info{flex:1;min-width:0}
+#mood{font-weight:900;font-size:17px;margin-bottom:8px}
+.bar{height:16px;background:#cfe9cf;border-radius:99px;overflow:hidden}
+#satBar{height:100%;width:50%;border-radius:99px;background:linear-gradient(90deg,var(--lime),var(--leaf));transition:width .4s}
+.sub{margin-top:6px;font-size:13px;font-weight:800;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#boost{background:var(--sun);padding:2px 8px;border-radius:99px;font-weight:900}
+.btn{width:100%;border:0;border-radius:16px;padding:13px 16px;font:800 17px system-ui,sans-serif;cursor:pointer;color:#fff;transition:transform .08s,box-shadow .08s,opacity .2s}
+.feed{background:#ff8fb1;box-shadow:0 5px 0 #d9608a}
+.up{width:auto;min-width:110px;background:var(--leaf);box-shadow:0 5px 0 var(--forest)}
+.btn:active{transform:translateY(4px);box-shadow:0 1px 0 rgba(0,0,0,.2)}
+.btn:disabled{opacity:.5}
+.btn:focus-visible,.leaf-btn:focus-visible{outline:3px solid var(--sun);outline-offset:3px}
+.shop{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.shop b.t{font-weight:900;font-size:18px;display:block}
+.shop span.s{font-size:13px;font-weight:700;opacity:.8}
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 18px);transform:translate(-50%,30px);opacity:0;pointer-events:none;z-index:30;background:var(--ink);color:#fff;padding:10px 16px;border-radius:14px;font-weight:800;font-size:14px;max-width:90vw;text-align:center;transition:.25s}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+@media (prefers-reduced-motion:reduce){.leaf-btn,.hippo-img{animation:none}.float{animation-duration:.01s}}
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="balance"><small>Листочки</small><span id="balance">0</span><span id="power">+1 за тап</span></header>
+
+  <section class="tap-zone">
+    <button class="leaf-btn" id="leaf" aria-label="Тапнуть по листочку">
+      <svg viewBox="0 0 200 200" aria-hidden="true">
+        <defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b6f23c"/><stop offset="1" stop-color="#1fa84a"/></linearGradient></defs>
+        <path d="M100 8 C178 40 196 124 100 194 C4 124 22 40 100 8 Z" fill="url(#lg)"/>
+        <path d="M100 30 L100 190 M100 80 L66 58 M100 110 L140 84 M100 140 L64 118" stroke="#0e6b2e" stroke-width="6" stroke-linecap="round" fill="none" opacity=".55"/>
+      </svg>
+    </button>
+  </section>
+
+  <section class="card" id="hippo">
+    <div class="top">
+      <svg viewBox="0 0 200 170" class="hippo-img" aria-hidden="true">
+        <ellipse cx="100" cy="158" rx="66" ry="10" fill="rgba(0,0,0,.14)"/>
+        <ellipse cx="52" cy="44" rx="17" ry="15" fill="#8fa5d6"/><ellipse cx="148" cy="44" rx="17" ry="15" fill="#8fa5d6"/>
+        <ellipse cx="52" cy="46" rx="8" ry="7" fill="#f6b3c9"/><ellipse cx="148" cy="46" rx="8" ry="7" fill="#f6b3c9"/>
+        <ellipse cx="100" cy="92" rx="78" ry="64" fill="#9fb4e0"/>
+        <ellipse cx="100" cy="116" rx="58" ry="38" fill="#f6b3c9"/>
+        <ellipse cx="80" cy="106" rx="6" ry="9" fill="#c9708f"/><ellipse cx="120" cy="106" rx="6" ry="9" fill="#c9708f"/>
+        <circle cx="68" cy="68" r="8" fill="#2b2f4a"/><circle cx="65" cy="65" r="2.6" fill="#fff"/>
+        <circle cx="132" cy="68" r="8" fill="#2b2f4a"/><circle cx="129" cy="65" r="2.6" fill="#fff"/>
+        <circle cx="50" cy="94" r="7" fill="#f6b3c9" opacity=".7"/><circle cx="150" cy="94" r="7" fill="#f6b3c9" opacity=".7"/>
+        <path d="M82 134 Q100 148 118 134" stroke="#c9708f" stroke-width="4" fill="none" stroke-linecap="round"/>
+      </svg>
+      <div class="info">
+        <div id="mood">Бегемот доволен</div>
+        <div class="bar"><div id="satBar"></div></div>
+        <div class="sub"><span id="satText">Сытость 50%</span><span id="boost" hidden></span></div>
+      </div>
+    </div>
+    <button class="btn feed" id="feedBtn">Покормить за <b id="feedCost">50</b> 🍃</button>
+  </section>
+
+  <section class="card shop">
+    <div><b class="t">Улучшить тап</b><span class="s">Уровень <b id="lvl">1</b> — сейчас +<b id="lvlPower">1</b> за тап</span></div>
+    <button class="btn up" id="upBtn"><b id="upCost">20</b> 🍃</button>
+  </section>
+</main>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+/* ===== Настройки баланса ===== */
+const C = {upBase:20, upGrowth:1.5, feedCost:50, feedSat:30, decayPerMin:2, boostSec:300, boostMax:900, boostMul:2};
+
+const tg = window.Telegram && window.Telegram.WebApp;
+if (tg) { tg.ready(); tg.expand(); try { tg.setHeaderColor("#1fa84a"); tg.setBackgroundColor("#1fa84a"); } catch(e){} }
+const $ = id => document.getElementById(id);
+const fmt = n => Math.floor(n).toLocaleString("ru-RU");
+
+/* ===== Состояние игрока ===== */
+let S = {leaves:0, level:1, satiety:50, satAt:Date.now(), boostUntil:0};
+
+const satNow    = () => Math.max(0, Math.min(100, S.satiety - (Date.now()-S.satAt)/60000*C.decayPerMin));
+const boostLeft = () => Math.max(0, Math.ceil((S.boostUntil - Date.now())/1000));
+const power     = () => S.level * (boostLeft() > 0 ? C.boostMul : 1);
+const upCost    = () => Math.floor(C.upBase * Math.pow(C.upGrowth, S.level-1));
+
+/* ===== Сохранение: облако Telegram (CloudStorage), запасной вариант — localStorage ===== */
+const KEY = "hippo_save_v1";
+const cloud = tg && tg.CloudStorage && tg.isVersionAtLeast && tg.isVersionAtLeast("6.9") ? tg.CloudStorage : null;
+
+function loadSave(cb) {
+  const done = raw => {
+    try {
+      const d = JSON.parse(raw);
+      if (d && [d.leaves,d.level,d.satiety,d.satAt,d.boostUntil].every(Number.isFinite) && d.level >= 1) S = d;
+    } catch(e) {}
+    cb();
+  };
+  if (cloud) cloud.getItem(KEY, (err, v) => done(err ? null : v));
+  else { let v = null; try { v = localStorage.getItem(KEY); } catch(e){} done(v); }
+}
+function writeSave() {
+  const raw = JSON.stringify(S);
+  if (cloud) cloud.setItem(KEY, raw, () => {});
+  else { try { localStorage.setItem(KEY, raw); } catch(e){} }
+}
+let saveTimer = null;
+function scheduleSave() { clearTimeout(saveTimer); saveTimer = setTimeout(writeSave, 1500); }
+document.addEventListener("visibilitychange", () => { if (document.hidden) writeSave(); });
+window.addEventListener("pagehide", writeSave);
+
+/* ===== Отрисовка ===== */
+function render() {
+  const sat = satNow(), bl = boostLeft(), p = power();
+  $("balance").textContent = fmt(S.leaves);
+  $("power").textContent = "+" + p + " за тап" + (bl > 0 ? " 🔥 x" + C.boostMul : "");
+  $("lvl").textContent = S.level;
+  $("lvlPower").textContent = S.level;
+  $("upCost").textContent = fmt(upCost());
+  $("feedCost").textContent = C.feedCost;
+  $("satBar").style.width = sat + "%";
+  $("satText").textContent = "Сытость " + Math.round(sat) + "%";
+  $("boost").hidden = bl <= 0;
+  if (bl > 0) $("boost").textContent = "x" + C.boostMul + " ещё " + Math.floor(bl/60) + ":" + String(bl%60).padStart(2,"0");
+  $("mood").textContent = sat > 60 ? "Бегемот доволен 😊" : sat > 25 ? "Бегемот хочет листочков" : "Бегемот голоден 😢";
+  $("hippo").classList.toggle("hungry", sat <= 25);
+  $("upBtn").disabled = S.leaves < upCost();
+  $("feedBtn").disabled = S.leaves < C.feedCost || sat >= 99.5;
+}
+setInterval(render, 1000);
+
+let toastTimer;
+function toast(t) {
+  const el = $("toast"); el.textContent = t; el.classList.add("show");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove("show"), 2200);
+}
+const haptic = t => { try { tg.HapticFeedback.impactOccurred(t); } catch(e){} };
+
+/* ===== Действия ===== */
+$("leaf").addEventListener("pointerdown", ev => {
+  ev.preventDefault();
+  const p = power();
+  S.leaves += p;
+  render(); scheduleSave(); haptic("light");
+  const f = document.createElement("div");
+  f.className = "float" + (boostLeft() > 0 ? " b" : "");
+  f.textContent = "+" + p;
+  f.style.left = ev.clientX + "px"; f.style.top = (ev.clientY - 20) + "px";
+  f.addEventListener("animationend", () => f.remove());
+  document.body.appendChild(f);
+  $("leaf").classList.add("pressed");
+  setTimeout(() => $("leaf").classList.remove("pressed"), 80);
+});
+
+$("upBtn").addEventListener("click", () => {
+  const c = upCost();
+  if (S.leaves < c) return toast("Не хватает листочков: нужно " + c);
+  S.leaves -= c; S.level++;
+  render(); writeSave(); haptic("medium"); toast("Тап улучшен!");
+});
+
+$("feedBtn").addEventListener("click", () => {
+  const sat = satNow();
+  if (sat >= 99.5) return toast("Бегемот сыт и доволен!");
+  if (S.leaves < C.feedCost) return toast("Нужно " + C.feedCost + " листочков");
+  const now = Date.now();
+  S.leaves -= C.feedCost;
+  S.satiety = Math.min(100, sat + C.feedSat);
+  S.satAt = now;
+  S.boostUntil = Math.min(Math.max(now, S.boostUntil) + C.boostSec*1000, now + C.boostMax*1000);
+  render(); writeSave(); haptic("medium"); toast("Ням! Бонус включён 🔥");
+});
+
+/* ===== Старт ===== */
+loadSave(render);
+</script>
+</body>
+</html>
